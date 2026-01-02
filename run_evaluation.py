@@ -3,12 +3,13 @@ import sys
 from pathlib import Path
 
 # Ensure the project root is in sys.path
-# Assuming scripts/run_evaluation.py, so parent.parent is the root
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# The script is in the root, so parent is the root
+root_dir = Path(__file__).parent
+sys.path.insert(0, str(root_dir))
 
 from locomo.evaluation.runner import main as run_qa_eval
 
-def run_test(model_name="gpt-3.5-turbo", batch_size=1, data_file="data/locomo10.json", api_key=None, base_url=None):
+def run_test(model_name="gpt-4o-mini", batch_size=1, max_context=16000, data_file="data/locomo10.json", api_key=None, base_url=None):
     # Set API configuration if provided
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
@@ -17,13 +18,13 @@ def run_test(model_name="gpt-3.5-turbo", batch_size=1, data_file="data/locomo10.
 
     # Resolve data_file relative to project root if it's a relative path
     if not os.path.isabs(data_file):
-        data_file = os.path.join(Path(__file__).parent.parent, data_file)
+        data_file = os.path.join(root_dir, data_file)
 
     if not os.path.exists(data_file):
         print(f"Error: Data file not found at {data_file}")
         return
 
-    out_dir = os.path.join(Path(__file__).parent.parent, "outputs")
+    out_dir = os.path.join(root_dir, "outputs")
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
         
@@ -35,7 +36,8 @@ def run_test(model_name="gpt-3.5-turbo", batch_size=1, data_file="data/locomo10.
         "--data-file", data_file,
         "--out-file", out_file,
         "--model", model_name,
-        "--batch-size", str(batch_size)
+        "--batch-size", str(batch_size),
+        "--max-context", str(max_context)
     ]
     
     print(f"Starting evaluation for {model_name}...")
@@ -57,5 +59,5 @@ if __name__ == "__main__":
         model_name="Qwen/Qwen3-8B-FP8", 
         batch_size=4,
         api_key="YOUR_API_KEY",      # Replace with your key
-        base_url="http://100.67.94.49:8000/v1" # Replace with your base URL if needed
+        base_url="http://100.74.246.71:8000/v1" # Replace with your base URL if needed
     )

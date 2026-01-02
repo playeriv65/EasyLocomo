@@ -1,7 +1,7 @@
 [project]
-name = "locomo"
+name = "EasyLocomo"
 version = "0.1.0"
-description = "Locomo: Long-term Memory Evaluation"
+description = "A repo for easy interaction with locomo benchmark"
 authors = [
     {name = "playeriv65", email = "playeriv65@gmail.com"},
 ]

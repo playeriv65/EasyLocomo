@@ -17,6 +17,7 @@ def parse_args():
     parser.add_argument("--data-file", type=str, required=True)
     parser.add_argument("--use-4bit", action="store_true")
     parser.add_argument("--batch-size", default=1, type=int)
+    parser.add_argument("--max-context", default=16000, type=int, help="Maximum context length for the model")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     return args
@@ -61,7 +62,7 @@ def main():
                 data['person2'] = conv_data['speaker_b']
 
         # Always use get_gpt_answers (OpenAI format)
-        answers = get_gpt_answers(data, out_data, prediction_key, args)
+        answers = get_gpt_answers(data, out_data, prediction_key, args, out_samples, args.out_file)
 
         # evaluate individual QA samples and save the score
         exact_matches, lengths, recall = eval_question_answering(answers["qa"], prediction_key)
@@ -70,9 +71,10 @@ def main():
 
         out_samples[data["sample_id"]] = answers
 
-    with open(args.out_file, "w") as f:
-        json.dump(list(out_samples.values()), f, indent=2)
-    
+        # Real-time saving: update the output file after each sample
+        with open(args.out_file, "w") as f:
+            json.dump(list(out_samples.values()), f, indent=2)
+
     analyze_aggr_acc(args.data_file, args.out_file, args.out_file.replace(".json", "_stats.json"),
                 model_key, model_key + "_f1")
 
