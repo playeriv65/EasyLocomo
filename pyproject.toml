@@ -1,0 +1,23 @@
+[project]
+name = "locomo"
+version = "0.1.0"
+description = "Locomo: Long-term Memory Evaluation"
+authors = [
+    {name = "playeriv65", email = "playeriv65@gmail.com"},
+]
+dependencies = [
+    "openai>=1.0.0",
+    "numpy",
+    "tqdm",
+    "tiktoken",
+    "regex",
+    "nltk",
+]
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["locomo*"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
