@@ -1,6 +1,10 @@
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if it exists
+load_dotenv()
 
 # Ensure the project root is in sys.path
 # The script is in the root, so parent is the root
@@ -55,9 +59,12 @@ def run_test(model_name="gpt-4o-mini", batch_size=1, max_context=16000, data_fil
 
 if __name__ == "__main__":
     # You can change the model name and API configuration here
+    api_key = os.getenv("api_key") # Or type manually
+    base_url = os.getenv("base_url") # Or type manually
+    
     run_test(
-        model_name="Qwen/Qwen3-8B-FP8", 
-        batch_size=4,
-        api_key="YOUR_API_KEY",      # Replace with your key
-        base_url="http://100.74.246.71:8000/v1" # Replace with your base URL if needed
+        model_name="gpt-4o-mini", 
+        batch_size=15,
+        api_key=api_key,
+        base_url=base_url
     )

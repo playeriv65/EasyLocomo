@@ -1,3 +1,5 @@
 __pycache__
 *.egg-info
 outputs
+/compare_with_old
+.env

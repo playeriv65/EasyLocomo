@@ -16,7 +16,7 @@ def set_openai_key():
         print("Warning: OPENAI_API_KEY not set in environment variables.")
 
 def run_chatgpt(query, num_gen=1, num_tokens_request=1000, 
-                model="gpt-3.5-turbo", use_16k=False, temperature=1.0, wait_time=1, response_format=None):
+                model="gpt-3.5-turbo", use_16k=False, temperature=0, wait_time=1, response_format=None):
     
     client = get_openai_client()
     

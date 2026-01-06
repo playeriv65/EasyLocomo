@@ -232,6 +232,18 @@ def get_gpt_answers(in_data, out_data, prediction_key, args, out_samples=None, o
                 else:
                     tqdm.write(f"Error: Could not parse answer for question index {k}. Raw model output:\n{answer}")
                     out_data['qa'][idx][prediction_key] = "Error: Could not parse answer"
+                    
+                    # Save parsing errors to a separate jsonl file for debugging
+                    if out_file:
+                        error_log_file = out_file.replace('.json', '_errors.jsonl')
+                        error_entry = {
+                            "sample_id": in_data.get('sample_id', 'unknown'),
+                            "question_index": k,
+                            "global_idx": idx,
+                            "raw_answer": answer
+                        }
+                        with open(error_log_file, "a", encoding="utf-8") as f_err:
+                            f_err.write(json.dumps(error_entry, ensure_ascii=False) + "\n")
             
             # Real-time saving after each batch
             if out_samples is not None and out_file is not None:

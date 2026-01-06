@@ -84,49 +84,42 @@ def analyze_aggr_acc(ann_file, in_file, out_file, model_name, metric_key, encode
                     except:
                         continue
             else:
-                print([k for k in qa.keys() if 'mistral' in k], metric_key)
+                pass
 
-    
-    print("Total number of questions and corresponding accuracy in each category: ")
     total_k = 0
     total_v = 0
-    # for k, v in total_counts.items():
     keys = [4, 1, 2, 3, 5]
     for k in keys:
         v = total_counts[k]
-        if float(v) == 0.0:
-            print("No questions found in category %s" % k)
-        else:
-            print(k, v, acc_counts[k], round(float(acc_counts[k])/v, 3))
         total_v += acc_counts[k]
         total_k += v
 
-    print("Overall accuracy: ", round(float(total_v)/total_k, 3))
-
-    # print("Total number of questions and corresponding accuracy by memory")
-    # keys = list(memory_counts_og.keys())
-    # keys.sort()
-    # results_by_memory = {"gpt3.5-16k": {}}
-    # for k in keys:
-    #     print(k, memory_counts_og[k], memory_counts[k], float(memory_counts[k])/memory_counts_og[k])
-    #     results_by_memory["gpt3.5-16k"][k] = float(memory_counts[k])/memory_counts_og[k]
+    def default_to_regular(d):
+        if isinstance(d, defaultdict):
+            d = {k: default_to_regular(v) for k, v in d.items()}
+        return d
     
     if os.path.exists(out_file):
-        results_dict = json.load(open(out_file))
+        try:
+            results_dict = json.load(open(out_file))
+        except:
+            results_dict = {}
     else:
         results_dict = {}
 
-    results_dict[model_name] = {}
-    results_dict[model_name]['category_counts'] = total_counts
-    results_dict[model_name]['cum_accuracy_by_category'] = acc_counts
-
-    results_dict[model_name]['category_counts_by_memory'] = memory_counts_og
-    results_dict[model_name]['cum_accuracy_by_category_by_memory'] = memory_counts
-    results_dict[model_name]['context_length_counts'] = context_len_og
-    results_dict[model_name]['cum_accuracy_by_context_length'] = context_len_counts
+    results_dict[model_name] = {
+        'category_counts': dict(total_counts),
+        'cum_accuracy_by_category': dict(acc_counts),
+        'category_counts_by_memory': default_to_regular(memory_counts_og),
+        'cum_accuracy_by_category_by_memory': default_to_regular(memory_counts),
+        'context_length_counts': dict(context_len_og),
+        'cum_accuracy_by_context_length': dict(context_len_counts)
+    }
 
     with open(out_file, 'w') as f:
         json.dump(results_dict, f, indent=2)
+    
+    return results_dict[model_name]
 
 
 if __name__ == "__main__":

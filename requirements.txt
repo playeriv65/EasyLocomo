@@ -1,6 +1,8 @@
 openai>=1.0.0
 numpy
 tqdm
+types-tqdm
 tiktoken
 regex
 nltk
+dotenv

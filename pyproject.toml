@@ -9,9 +9,11 @@ dependencies = [
     "openai>=1.0.0",
     "numpy",
     "tqdm",
+    "types-tqdm",
     "tiktoken",
     "regex",
     "nltk",
+    "dotenv",
 ]
 requires-python = ">=3.8"
 
