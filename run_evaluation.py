@@ -13,7 +13,7 @@ sys.path.insert(0, str(root_dir))
 
 from locomo.evaluation.runner import main as run_qa_eval
 
-def run_test(model_name="gpt-4o-mini", batch_size=1, max_context=16000, data_file="data/locomo10.json", api_key=None, base_url=None):
+def run_test(model_name="gpt-4o-mini", batch_size=1, max_context=32768, data_file="data/locomo10.json", api_key=None, base_url=None, category=None, overwrite=False):
     # Set API configuration if provided
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
@@ -35,7 +35,7 @@ def run_test(model_name="gpt-4o-mini", batch_size=1, max_context=16000, data_fil
     out_file = os.path.join(out_dir, f"{model_name.replace('/', '_')}_qa.json")
     
     # Mock command line arguments for runner.py
-    sys.argv = [
+    cmd_args = [
         "runner.py",
         "--data-file", data_file,
         "--out-file", out_file,
@@ -44,7 +44,17 @@ def run_test(model_name="gpt-4o-mini", batch_size=1, max_context=16000, data_fil
         "--max-context", str(max_context)
     ]
     
+    if category is not None:
+        cmd_args.extend(["--category", str(category)])
+    
+    if overwrite:
+        cmd_args.append("--overwrite")
+        
+    sys.argv = cmd_args
+    
     print(f"Starting evaluation for {model_name}...")
+    if category is not None:
+        print(f"Filtering for category: {category}")
     print(f"Data file: {data_file}")
     print(f"Output file: {out_file}")
     
@@ -58,13 +68,14 @@ def run_test(model_name="gpt-4o-mini", batch_size=1, max_context=16000, data_fil
         traceback.print_exc()
 
 if __name__ == "__main__":
-    # You can change the model name and API configuration here
-    api_key = os.getenv("api_key") # Or type manually
-    base_url = os.getenv("base_url") # Or type manually
+    # Credentials can be set in .env or passed here
+    api_key = os.getenv("OPENAI_API_KEY") 
+    base_url = os.getenv("OPENAI_API_BASE") 
     
     run_test(
         model_name="gpt-4o-mini", 
         batch_size=15,
         api_key=api_key,
-        base_url=base_url
+        base_url=base_url,
+        max_context=65536,
     )

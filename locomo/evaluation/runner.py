@@ -6,10 +6,8 @@ import os, json
 from tqdm import tqdm
 import argparse
 from locomo.utils.openai_client import set_openai_key
-from locomo.evaluation.evaluation import eval_question_answering
-from locomo.evaluation.evaluation_stats import analyze_aggr_acc
-from locomo.evaluation.summary_generator import generate_summary_from_stats
 from locomo.evaluation.gpt_utils import get_gpt_answers
+from locomo.evaluation.evaluate_qa import evaluate_and_report
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -20,6 +18,7 @@ def parse_args():
     parser.add_argument("--batch-size", default=1, type=int)
     parser.add_argument("--max-context", default=16000, type=int, help="Maximum context length for the model")
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--category", type=int, default=None, help="Specific category to evaluate (1-5)")
     args = parser.parse_args()
     return args
 
@@ -65,11 +64,7 @@ def main():
         # Always use get_gpt_answers (OpenAI format)
         answers = get_gpt_answers(data, out_data, prediction_key, args, out_samples, args.out_file)
 
-        # evaluate individual QA samples and save the score
-        exact_matches, lengths, recall = eval_question_answering(answers["qa"], prediction_key)
-        for i in range(0, len(answers["qa"])):
-            answers["qa"][i][model_key + "_f1"] = round(exact_matches[i], 3)
-
+        # Inline evaluation removed. Done in batch at the end.
         out_samples[data["sample_id"]] = answers
 
         # Real-time saving: update the output file after each sample
@@ -80,44 +75,11 @@ def main():
     print("FINISHED PREDICTIONS. ANALYZING RESULTS...")
     print("="*50)
     
-    stats_out_file = args.out_file.replace(".json", "_stats.json")
-    stats = analyze_aggr_acc(args.data_file, args.out_file, stats_out_file,
-                model_key, model_key + "_f1")
-    
-    # Generate and save summary using the new module
-    summary = generate_summary_from_stats(stats)
-    
-    # Validation check to avoid linting issues and runtime crashes
-    if not isinstance(summary, dict):
-        print(f"Error: Summary generator returned {type(summary)} instead of dict")
-        return
-
-    summary_file = args.out_file.replace(".json", "_summary.json")
-    with open(summary_file, "w") as f:
-        json.dump(summary, f, indent=2)
-    
-    print("\n" + "="*30)
-    print(f"EVALUATION SUMMARY")
-    print("="*30)
-    
-    overall = summary.get('overall', {})
-    if isinstance(overall, dict):
-        acc = overall.get('accuracy', 0)
-        total_q = overall.get('total_questions', 0)
-        print(f"Overall Accuracy: {acc:.2%} (Total: {total_q})")
-    
-    print("-" * 30)
-    categories = summary.get('categories', {})
-    if isinstance(categories, dict):
-        for cat, results in categories.items():
-            if isinstance(results, dict):
-                acc = results.get('accuracy', 0)
-                count = results.get('count', 0)
-                print(f"{cat:15}: {acc:.2%} ({count} questions)")
-    
-    print("="*30)
-    print(f"Detailed statistics saved to: {stats_out_file}")
-    print(f"Summary results saved to: {summary_file}")
+    evaluate_and_report(
+        qa_file=args.out_file,
+        model_name=model_key,
+        data_file=args.data_file
+    )
 
 if __name__ == "__main__":
     main()

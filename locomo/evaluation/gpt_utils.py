@@ -28,8 +28,6 @@ QA_PROMPT_BATCH = """
 Based on the above conversations, write short answers for each of the following questions in a few words. 
 Write the answers in the form of a json dictionary where each entry contains the question number as "key" and the short answer as "value". 
 Use single-quote characters for named entities and double-quote characters for enclosing json elements. Answer with exact words from the conversations whenever possible.
-
-IMPORTANT: Output ONLY the JSON dictionary. Do not include any explanations, thinking process, or markdown code blocks.
 """
 
 # If no information is available to answer the question, write 'No information available'.
@@ -110,6 +108,10 @@ def get_gpt_answers(in_data, out_data, prediction_key, args, out_samples=None, o
 
             qa = in_data['qa'][i]
             
+            # Filter by category if requested
+            if getattr(args, 'category', None) is not None and qa.get('category') != args.category:
+                continue
+
             if prediction_key not in out_data['qa'][i] or args.overwrite:
                 include_idxs.append(i)
             else:
@@ -118,15 +120,19 @@ def get_gpt_answers(in_data, out_data, prediction_key, args, out_samples=None, o
             if qa['category'] == 2:
                 questions.append(qa['question'] + ' Use DATE of CONVERSATION to answer with an approximate date.')
             elif qa['category'] == 5:
-                distractor = qa['adversarial_answer']
-                question = qa['question'] + " (a) {} (b) {}"
-                question = question.format(distractor, 'Not mentioned in the conversation')
-                answer = {'b': 'Not mentioned in the conversation', 'a': distractor}
+                # Reverting to original locomo logic: randomized options and prompt
+                ans_text = qa.get('answer', qa.get('adversarial_answer', ''))
+                question = qa['question'] + " Select the correct answer: (a) {} (b) {}. "
+                if random.random() < 0.5:
+                    question = question.format('Not mentioned in the conversation', ans_text)
+                    answer = {'a': 'Not mentioned in the conversation', 'b': ans_text}
+                else:
+                    question = question.format(ans_text, 'Not mentioned in the conversation')
+                    answer = {'b': 'Not mentioned in the conversation', 'a': ans_text}
 
                 cat_5_idxs.append(len(questions))
                 questions.append(question)
                 cat_5_answers.append(answer)
-                # questions.append(qa['question'] + "Write NOT ANSWERABLE if the question cannot be answered")
             else:
                 questions.append(qa['question'])
 

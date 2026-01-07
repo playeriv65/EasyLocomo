@@ -2,35 +2,14 @@ import json
 import os
 import argparse
 
-def generate_summary_from_stats(stats_data: dict, model_name: str = None) -> dict:
-    """
-    Processes the raw statistics data and returns a consolidated summary.
-    """
-    if not stats_data:
-        return {"error": "No stats data provided"}
-
-    # If it's the full nested dict (e.g. loaded from file), extract the specific model's data
-    if model_name and isinstance(stats_data, dict) and model_name in stats_data:
-        data = stats_data[model_name]
-    else:
-        # Assume stats_data is already the model-specific dict
-        data = stats_data
-
-    if not isinstance(data, dict):
-        return {"error": f"Invalid data format: expected dict, got {type(data)}"}
-
+def calculate_metric_summary(category_counts, acc_counts):
     summary = {
         "categories": {},
         "overall": {}
     }
-
     total_correct = 0
     total_questions = 0
 
-    category_counts = data.get('category_counts', {})
-    acc_counts = data.get('cum_accuracy_by_category', {})
-
-    # Category mapping
     cat_names = {
         "1": "Multi-hop",
         "2": "Temporal",
@@ -65,8 +44,42 @@ def generate_summary_from_stats(stats_data: dict, model_name: str = None) -> dic
             "total_questions": 0,
             "accuracy": 0.0
         }
-
     return summary
+
+def generate_summary_from_stats(stats_data: dict, model_name: str = None) -> dict:
+    """
+    Processes the raw statistics data and returns a consolidated summary.
+    """
+    if not stats_data:
+        return {"error": "No stats data provided"}
+
+    # If it's the full nested dict (e.g. loaded from file), extract the specific model's data
+    if model_name and isinstance(stats_data, dict) and model_name in stats_data:
+        data = stats_data[model_name]
+    else:
+        # Assume stats_data is already the model-specific dict
+        data = stats_data
+
+    if not isinstance(data, dict):
+        return {"error": f"Invalid data format: expected dict, got {type(data)}"}
+
+    category_counts = data.get('category_counts', {})
+    
+    # Check if we have multiple metrics
+    metrics = data.get('metrics', {})
+    
+    full_summary = {}
+    
+    # If no "metrics" key, fallback to old style
+    if not metrics:
+        acc_counts = data.get('cum_accuracy_by_category', {})
+        full_summary['default'] = calculate_metric_summary(category_counts, acc_counts)
+    else:
+        for metric_name, metric_data in metrics.items():
+            acc_counts = metric_data.get('cum_accuracy_by_category', {})
+            full_summary[metric_name] = calculate_metric_summary(category_counts, acc_counts)
+
+    return full_summary
 
 def main():
     parser = argparse.ArgumentParser(description="Generate a readable summary from stats file")
@@ -96,28 +109,20 @@ def main():
     print(f"EVALUATION SUMMARY: {model_key}")
     print("="*30)
     
-    overall = summary.get('overall', {})
-    if isinstance(overall, dict):
+    for metric, res in summary.items():
+        print(f"\nMetric: {metric}")
+        overall = res.get('overall', {})
         acc = overall.get('accuracy', 0)
         total_q = overall.get('total_questions', 0)
         print(f"Overall Accuracy: {acc:.2%}")
-        print(f"Total Questions: {total_q}")
-    
-    print("-" * 30)
-    categories = summary.get('categories', {})
-    if isinstance(categories, dict):
-        for cat, results in categories.items():
-            if isinstance(results, dict):
-                acc = results.get('accuracy', 0)
-                count = results.get('count', 0)
-                print(f"{cat:15}: {acc:.2%} ({count} questions)")
-    print("="*30 + "\n")
-
-    # Save to file if output path is provided
-    output_path = args.output or args.stats_file.replace("_stats.json", "_summary.json")
-    with open(output_path, 'w') as f:
-        json.dump(summary, f, indent=2)
-    print(f"Summary saved to: {output_path}")
+        
+        categories = res.get('categories', {})
+        for cat, val in categories.items():
+            print(f"  {cat}: {val['accuracy']:.2%} ({val['count']})")
+            
+    if args.output:
+        with open(args.output, 'w') as f:
+            json.dump(summary, f, indent=2)
 
 if __name__ == "__main__":
     main()

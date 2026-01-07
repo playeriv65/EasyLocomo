@@ -5,4 +5,5 @@ types-tqdm
 tiktoken
 regex
 nltk
-dotenv
+python-dotenv
+bert_score
