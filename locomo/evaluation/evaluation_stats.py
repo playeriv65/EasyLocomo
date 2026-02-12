@@ -46,7 +46,7 @@ def analyze_aggr_acc(ann_file, in_file, out_file, model_name, metric_keys, encod
 
     outputs = {d['sample_id']: d for d in json.load(open(in_file))}
     data = {d['sample_id']: d for d in json.load(open(ann_file))}
-    sample_ids = outputs.keys()
+    sample_ids = sorted(outputs.keys())
     
     print(f'Analyzing metrics: {metric_keys}')
     

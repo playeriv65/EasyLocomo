@@ -8,4 +8,7 @@ outputs/
 /compare_with_old/
 .pytest_cache/
 debug_output.txt
+usage_debug*.txt
+run*.txt
+full_dry*.txt
 *.log

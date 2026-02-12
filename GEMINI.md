@@ -35,3 +35,5 @@ Before submitting or after significant changes, follow these steps:
 2.  **Clean Artifacts**: Remove temporary files (`debug_output.txt`, `compare_with_old/`).
 3.  **Check GitIgnore**: Ensure logs and temporary files are ignored.
 4.  **Verify All Tests**: Run both `pytest` and the `small` integration test.
+## 7. Communication Protocol
+- **Status Inquiry**: If the user asks 'What are you doing?' (你在干什么?), the AI must STOP all work immediately and only report the current status and intent. Do not proceed with the next step until further instruction.

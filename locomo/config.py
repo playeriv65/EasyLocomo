@@ -24,6 +24,7 @@ class Config:
         self.out_file_path: Optional[Path] = None
         self.max_samples: Optional[int] = None
         self.max_questions: Optional[int] = None
+        self.seed: int = 42
 
         self.init_validate()
 

@@ -1,5 +1,5 @@
 import random
-import os, json
+import os, json, hashlib
 import asyncio
 from tqdm.asyncio import tqdm_asyncio
 import time
@@ -92,6 +92,10 @@ def get_input_context(data, num_question_tokens, encoding, args):
         return encoding.decode(truncated_tokens)
 
 
+# Standardize question token budget to ensure identical context across prompts for caching.
+# 1024 is a safe upper bound for most QA prompts in LoCoMo.
+RESERVED_QA_TOKENS = 1024
+
 async def process_single_question(qa, include_idx, in_data, start_prompt, start_tokens, encoding, args, prediction_key):
     """
     Async worker for a single question.
@@ -108,22 +112,28 @@ async def process_single_question(qa, include_idx, in_data, start_prompt, start_
         is_cat_5 = True
         ans_text = qa.get('answer', qa.get('adversarial_answer', ''))
         q_template = qa['question'] + " Select the correct answer: (a) {} (b) {}. "
-        if random.random() < 0.5:
+        
+        # Deterministic choice based on sample_id and question text
+        # This ensures the same question in the same sample always has the same options order
+        stable_hash = hashlib.sha256(f"{in_data.get('sample_id', '')}_{qa['question']}".encode()).hexdigest()
+        is_swapped = int(stable_hash[0], 16) % 2 == 0
+        
+        if is_swapped:
             question_text = q_template.format('Not mentioned in the conversation', ans_text)
             cat_5_options = {'a': 'Not mentioned in the conversation', 'b': ans_text}
         else:
             question_text = q_template.format(ans_text, 'Not mentioned in the conversation')
             cat_5_options = {'b': 'Not mentioned in the conversation', 'a': ans_text}
             
-    # 2. Build Prompt
+    # 2. Build Prompt Parts
     final_prompt_template = QA_PROMPT if not is_cat_5 else QA_PROMPT_CAT_5
     prompt_suffix = final_prompt_template.format(question_text)
-    num_q_tokens = len(encoding.encode(prompt_suffix))
     
-    # 3. Get Context (Chronological)
-    # Note: Optimization - we could cache this if multiple questions share the same context/truncation, 
-    # but for now simplicity is better.
-    context = get_input_context(in_data['conversation'], num_q_tokens + start_tokens, encoding, args)
+    # 3. Get Context (Chronological & Deterministic Prefix)
+    # We use a FIXED RESERVED_QA_TOKENS instead of dynamic num_q_tokens.
+    # This ensures that for all questions in the same sample, the 'context' text is identical,
+    # enabling bit-for-bit identical prefixes for efficient provider-side prompt caching.
+    context = get_input_context(in_data['conversation'], RESERVED_QA_TOKENS + start_tokens, encoding, args)
     full_query = start_prompt + context + "\n\n" + prompt_suffix
     
     # 4. Call LLM (Async)

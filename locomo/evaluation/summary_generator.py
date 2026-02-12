@@ -99,7 +99,7 @@ def main():
     # If model is not provided, take the first one found
     model_key = args.model
     if not model_key:
-        model_key = list(full_stats.keys())[0]
+        model_key = sorted(full_stats.keys())[0]
         print(f"No model specified, using first available key: {model_key}")
 
     summary = generate_summary_from_stats(full_stats, model_key)

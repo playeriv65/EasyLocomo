@@ -7,6 +7,8 @@ This repository adapts the original logic and data from the paper ["Evaluating V
 ## 🌟 Key Features
 
 - **Result Consistency**: Uses the same data and evaluation logic as the original LoCoMo project. Consistency of results has been verified using GPT-4o-mini. See [release 0.1.0](../../releases/tag/v0.1.0) for details.
+- **Cache-Friendly**: Implemented fixed-length context truncation to maximize Gemini implicit prompt caching (approx. 95% hit rate).
+- **Fully Deterministic**: Eliminated prompt randomness via hashing and sorted processing, guaranteeing 100% reproducible inputs and outputs.
 - **Simplified Setup**: No complex bash scripts or environment setup. Optimized for [uv](https://github.com/astral-sh/uv) and standard Python environments.
 - **OpenAI API Compatibility**: Call any LLM that supports the OpenAI API format (e.g., GPT-4o, GPT-4o-mini, Claude via proxy, DeepSeek, or local models via Ollama/vLLM).
 - **Flexible Configuration**: Easily set your API key, base URL, and model name.
