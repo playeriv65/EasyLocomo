@@ -23,6 +23,7 @@ class Config:
         self.category = None
         self.out_file_path: Optional[Path] = None
         self.max_samples: Optional[int] = None
+        self.no_context = False
         self.max_questions: Optional[int] = None
         self.seed: int = 42
 

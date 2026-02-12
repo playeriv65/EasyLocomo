@@ -11,6 +11,7 @@ def parse_args():
     parser.add_argument("--category", type=int, default=None, help="Specific category to evaluate (1-5)")
     parser.add_argument("--limit", type=int, default=None, help="Limit number of samples to evaluate")
     parser.add_argument("--max-questions", type=int, default=None, help="Limit number of questions per sample")
+    parser.add_argument("--no-context", action="store_true", help="Do not include conversation context in prompt")
     
     args = parser.parse_args()
 
@@ -21,6 +22,7 @@ def parse_args():
     config.category = args.category
     config.max_samples = args.limit
     config.max_questions = args.max_questions
+    config.no_context = args.no_context
     
     config.run_validate()
 

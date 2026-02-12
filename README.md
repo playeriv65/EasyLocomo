@@ -11,6 +11,8 @@ This repository adapts the original logic and data from the paper ["Evaluating V
 - **Fully Deterministic**: Eliminated prompt randomness via hashing and sorted processing, guaranteeing 100% reproducible inputs and outputs.
 - **Simplified Setup**: No complex bash scripts or environment setup. Optimized for [uv](https://github.com/astral-sh/uv) and standard Python environments.
 - **OpenAI API Compatibility**: Call any LLM that supports the OpenAI API format (e.g., GPT-4o, GPT-4o-mini, Claude via proxy, DeepSeek, or local models via Ollama/vLLM).
+- **RAG Demo**: Includes data extraction tools and a vanilla RAG example (`examples/vanilla_rag.py`) to demonstrate external memory integration.
+- **No-Context Evaluation**: Supports a `--no-context` mode to evaluate models that rely entirely on external memory or retrieval.
 - **Flexible Configuration**: Easily set your API key, base URL, and model name.
 - **Breakpoint Resumption**: Automatically saves progress after each sample/batch and skips already predicted samples, allowing for reliable long-running evaluations.
 - **JSON Mode & Robust Parsing**: Utilizes OpenAI's JSON mode for structured outputs and includes advanced cleaning logic (removing reasoning thoughts, markdown blocks) to ensure high parsing success rates.

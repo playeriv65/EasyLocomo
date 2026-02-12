@@ -32,8 +32,13 @@ This document outlines the development norms, configuration standards, and testi
 ## 6. Maintenance Workflow (Sync Procedure)
 Before submitting or after significant changes, follow these steps:
 1.  **Sync Dependencies**: Update `pyproject.toml` and then run `uv pip compile pyproject.toml -o requirements.txt` (if using requirements) or simply `uv sync`.
-2.  **Clean Artifacts**: Remove temporary files (`debug_output.txt`, `compare_with_old/`).
+2.  **Clean Artifacts**: Remove temporary files (`debug_output.txt`, `compare_with_old/`, and temporary scripts like `extract_data_temp.py`).
 3.  **Check GitIgnore**: Ensure logs and temporary files are ignored.
 4.  **Verify All Tests**: Run both `pytest` and the `small` integration test.
 ## 7. Communication Protocol
 - **Status Inquiry**: If the user asks 'What are you doing?' (你在干什么?), the AI must STOP all work immediately and only report the current status and intent. Do not proceed with the next step until further instruction.
+
+## 8. Commit Protocol
+- **Prepare Commit**: When the user asks to "prepare commit" or "ready to commit", **automatically organize the commit message** summarizing the changes (feat, fix, refactor, docs) and present it for review.
+- **Pre-Commit Check**: Before committing, ALWAYS check and update configuration files (`pyproject.toml`, etc.) and documentation (`.md` files) to reflect the latest changes.
+

@@ -133,8 +133,17 @@ async def process_single_question(qa, include_idx, in_data, start_prompt, start_
     # We use a FIXED RESERVED_QA_TOKENS instead of dynamic num_q_tokens.
     # This ensures that for all questions in the same sample, the 'context' text is identical,
     # enabling bit-for-bit identical prefixes for efficient provider-side prompt caching.
-    context = get_input_context(in_data['conversation'], RESERVED_QA_TOKENS + start_tokens, encoding, args)
-    full_query = start_prompt + context + "\n\n" + prompt_suffix
+    
+    if getattr(args, 'no_context', False):
+        context = ""
+        # If no context, we don't start with CONV_START_PROMPT either, or we need a minimal instruction.
+        # But 'start_prompt' is passed in.
+        # Let's just use the start_prompt (which introduces people) but no actual conversation.
+        # Or better: if no_context, the prompt is just the question.
+        full_query = prompt_suffix
+    else:
+        context = get_input_context(in_data['conversation'], RESERVED_QA_TOKENS + start_tokens, encoding, args)
+        full_query = start_prompt + context + "\n\n" + prompt_suffix
     
     # 4. Call LLM (Async)
     try:
