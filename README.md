@@ -55,6 +55,18 @@ uv run run_evaluation.py
 python run_evaluation.py
 ```
 
+### 4. Run Tests
+
+To verify logic and concurrency:
+
+```bash
+# Run unit tests
+python -m pytest tests/
+
+# Run a quick integration test
+python scripts/test_runner.py small
+```
+
 By default, this will evaluate the model on the `data/locomo10.json` dataset. Results, including predictions and statistical reports, will be saved in the `outputs/` directory.
 
 ---

@@ -1,46 +1,27 @@
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 import os, json
 from tqdm import tqdm
 import argparse
-from locomo.utils.openai_client import set_openai_key
 from locomo.evaluation.gpt_utils import get_gpt_answers
 from locomo.evaluation.evaluate_qa import evaluate_and_report
+from locomo.config import config
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--out-file", required=True, type=str)
-    parser.add_argument("--model", required=True, type=str)
-    parser.add_argument("--data-file", type=str, required=True)
-    parser.add_argument("--use-4bit", action="store_true")
-    parser.add_argument("--batch-size", default=1, type=int)
-    parser.add_argument("--max-context", default=16000, type=int, help="Maximum context length for the model")
-    parser.add_argument("--overwrite", action="store_true")
-    parser.add_argument("--category", type=int, default=None, help="Specific category to evaluate (1-5)")
-    args = parser.parse_args()
-    return args
-
-def main():
-    # get arguments
-    args = parse_args()
-
-    print("******************  Evaluating Model %s ***************" % args.model)
-
-    # Always use OpenAI format
-    set_openai_key()
-
+def run_locomo():
+    # Ensure configuration is valid
+    assert config.out_file_path is not None, "out_file_path must be set before running"
+    
     # load conversations
-    samples = json.load(open(args.data_file))
-    prediction_key = "%s_prediction" % args.model
-    model_key = "%s" % args.model
+    samples = json.load(open(config.data_path))
+    prediction_key = "%s_prediction" % config.model_name
+    model_key = "%s" % config.model_name
     
     # load the output file if it exists to check for overwriting
-    if os.path.exists(args.out_file):
-        out_samples = {d["sample_id"]: d for d in json.load(open(args.out_file))}
+    if config.out_file_path and os.path.exists(config.out_file_path):
+        out_samples = {d["sample_id"]: d for d in json.load(open(config.out_file_path))}
     else:
         out_samples = {}
+
+    if config.max_samples:
+        samples = samples[:config.max_samples]
 
     for data in samples:
         out_data = {"sample_id": data["sample_id"]}
@@ -62,13 +43,13 @@ def main():
                 data['person2'] = conv_data['speaker_b']
 
         # Always use get_gpt_answers (OpenAI format)
-        answers = get_gpt_answers(data, out_data, prediction_key, args, out_samples, args.out_file)
+        answers = get_gpt_answers(data, out_data, prediction_key, config, out_samples, config.out_file_path)
 
         # Inline evaluation removed. Done in batch at the end.
         out_samples[data["sample_id"]] = answers
 
         # Real-time saving: update the output file after each sample
-        with open(args.out_file, "w") as f:
+        with open(config.out_file_path, "w") as f:
             json.dump(list(out_samples.values()), f, indent=2)
 
     print("\n" + "="*50)
@@ -76,10 +57,8 @@ def main():
     print("="*50)
     
     evaluate_and_report(
-        qa_file=args.out_file,
+        qa_file=config.out_file_path,
         model_name=model_key,
-        data_file=args.data_file
+        data_file=config.data_path
     )
 
-if __name__ == "__main__":
-    main()

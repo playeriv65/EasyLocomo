@@ -14,6 +14,10 @@ from locomo.evaluation.evaluation_stats import analyze_aggr_acc
 from locomo.evaluation.summary_generator import generate_summary_from_stats
 
 def evaluate_and_report(qa_file, model_name, data_file=None, no_bert=False, metrics="f1,bertscore"):
+    qa_file = str(qa_file)
+    if data_file:
+        data_file = str(data_file)
+        
     if not data_file: 
         if os.path.exists(qa_file):
              data_file = qa_file

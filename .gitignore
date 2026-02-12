@@ -6,3 +6,6 @@ __pycache__/
 .mypy_cache/
 outputs/
 /compare_with_old/
+.pytest_cache/
+debug_output.txt
+*.log

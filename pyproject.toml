@@ -15,6 +15,9 @@ dependencies = [
     "nltk",
     "python-dotenv",
     "bert_score",
+    "tenacity",
+    "pytest",
+    "pytest-asyncio",
 ]
 requires-python = ">=3.8"
 

@@ -3,26 +3,31 @@ import sys
 import time
 import json
 import numpy as np
-from openai import OpenAI, APIError, APIConnectionError, RateLimitError
+from openai import OpenAI, AsyncOpenAI, APIError, APIConnectionError, RateLimitError
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from locomo.config import config
 
 def get_openai_client():
-    api_key = os.environ.get("OPENAI_API_KEY")
-    base_url = os.environ.get("OPENAI_API_BASE")
-    return OpenAI(api_key=api_key, base_url=base_url)
+    client = OpenAI(
+        api_key=config.openai_api_key, 
+        base_url=config.openai_api_base,
+    )
+    return client
 
-def set_openai_key():
-    # In v1, we don't set global keys, but we can check if env vars are set
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("Warning: OPENAI_API_KEY not set in environment variables.")
+def get_async_openai_client():
+    client = AsyncOpenAI(
+        api_key=config.openai_api_key, 
+        base_url=config.openai_api_base,
+    )
+    return client
 
-def run_chatgpt(query, num_gen=1, num_tokens_request=1000, 
-                model="gpt-3.5-turbo", use_16k=False, temperature=0, wait_time=1, response_format=None):
+# Synchronous version (keeping for backward compatibility if needed, though we should migrate away)
+def run_chatgpt(query, num_gen=1, num_tokens_request=1000, temperature=0, wait_time=1, response_format=None, model=None):
+    if model is None:
+        assert config.model_name is not None, "model_name must be set in config before calling run_chatgpt"
+        model = config.model_name
     
     client = get_openai_client()
-    
-    # Map legacy model names if necessary, or just use what's passed
-    if model == "chatgpt":
-        model = "gpt-3.5-turbo"
     
     messages = [{"role": "user", "content": query}]
     
@@ -57,67 +62,37 @@ def run_chatgpt(query, num_gen=1, num_tokens_request=1000,
     if num_gen > 1:
         return [choice.message.content for choice in completion.choices]
     else:
-        return completion.choices[0].message.content
+        content = completion.choices[0].message.content
+        return content if content is not None else ""
 
-def run_chatgpt_with_examples(query, examples, input_text, num_gen=1, num_tokens_request=1000, use_16k=False, wait_time=1, temperature=1.0):
-    client = get_openai_client()
+@retry(
+    retry=retry_if_exception_type((RateLimitError, APIConnectionError, APIError)),
+    wait=wait_exponential(multiplier=1, min=4, max=60),
+    stop=stop_after_attempt(10)
+)
+async def run_chatgpt_async(query, num_gen=1, num_tokens_request=1000, temperature=0, response_format=None, model=None):
+    if model is None:
+        assert config.model_name is not None, "model_name must be set in config before calling run_chatgpt_async"
+        model = config.model_name
     
-    messages = [{"role": "system", "content": query}]
-    for inp, out in examples:
-        messages.append({"role": "user", "content": inp})
-        messages.append({"role": "assistant", "content": out}) # Changed system to assistant for examples
-    messages.append({"role": "user", "content": input_text})
+    client = get_async_openai_client()
+    messages = [{"role": "user", "content": query}]
+    
+    try:
+        completion = await client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=num_tokens_request,
+            n=num_gen,
+            response_format=response_format
+        )
+    except Exception as e:
+        # print(f"Async Request Error: {e}") # Tenacity will handle logging if configured, or we can just let it bubble up to retry
+        raise e
 
-    completion = None
-    while completion is None:
-        try:
-            completion = client.chat.completions.create(
-                model="gpt-3.5-turbo" if not use_16k else "gpt-3.5-turbo-16k",
-                temperature=temperature,
-                max_tokens=num_tokens_request,
-                n=num_gen,
-                messages=messages
-            )
-        except Exception as e:
-            print(f"Error: {e}; waiting for {wait_time} seconds")
-            time.sleep(wait_time)
-            wait_time *= 2
-            
-    return completion.choices[0].message.content
-
-def run_json_trials(query, num_gen=1, num_tokens_request=1000, 
-                model="gpt-3.5-turbo", use_16k=False, temperature=1.0, wait_time=1, examples=None, input=None):
-
-    run_loop = True
-    counter = 0
-    while run_loop:
-        try:
-            if examples is not None and input is not None:
-                output = run_chatgpt_with_examples(query, examples, input, num_gen=num_gen, wait_time=wait_time,
-                                                   num_tokens_request=num_tokens_request, use_16k=use_16k, temperature=temperature).strip()
-            else:
-                output = run_chatgpt(query, num_gen=num_gen, wait_time=wait_time, model=model,
-                                                   num_tokens_request=num_tokens_request, use_16k=use_16k, temperature=temperature)
-            
-            # Clean up potential markdown code blocks
-            if "```" in output:
-                import re
-                json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", output, re.DOTALL)
-                if json_match:
-                    output = json_match.group(1)
-                else:
-                    output = output.replace("```json", "").replace("```", "")
-
-            output = output.replace("json", "") 
-            facts = json.loads(output.strip())
-            run_loop = False
-        except json.decoder.JSONDecodeError:
-            counter += 1
-            time.sleep(1)
-            print("Retrying to avoid JsonDecodeError, trial %s ..." % counter)
-            # print(output)
-            if counter == 10:
-                print("Exiting after 10 trials")
-                sys.exit()
-            continue
-    return facts
+    if num_gen > 1:
+        return [choice.message.content for choice in completion.choices]
+    else:
+        content = completion.choices[0].message.content
+        return content if content is not None else ""
